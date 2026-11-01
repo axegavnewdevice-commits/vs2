@@ -14,6 +14,9 @@
   const GRACE_MS = 90 * 1000;   // how long a vanished opponent is shown as "reconnecting"
   const $ = (id) => document.getElementById(id);
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  /** All server calls go to ONE Vercel function: /api/game?op=<config|rooms|action>[&...] */
+  const EP = (op, qs) => '/api/game?op=' + op + (qs ? '&' + qs : '');
+  const opOf = (path) => path.replace('/api/game?op=', '').split('&')[0];
 
   const T = {
     title: 'اللعب عبر الإنترنت', yourName: 'اسمك', create: 'إنشاء غرفة', join: 'انضمام', code: 'رمز الغرفة', copy: 'نسخ الرمز', copied: 'تم نسخ الرمز',
@@ -33,14 +36,16 @@
     api_missing: 'ملفات الخادم (مجلد api) غير منشورة أو غير مفعّلة على Vercel', server_error: 'حدث خطأ في الخادم',
     supabase_lib: 'تعذر تحميل مكتبة Supabase من الإنترنت', anonymous_disabled: 'فعّل Anonymous sign-ins في إعدادات Supabase (Authentication)',
     supabase_unreachable: 'تعذر الوصول إلى Supabase: تحقق من SUPABASE_URL وأن المشروع غير متوقف', auth_failed: 'رفض Supabase تسجيل الدخول: تحقق من SUPABASE_ANON_KEY',
-    db_not_ready: 'قاعدة البيانات غير جاهزة: شغّل ملف SQL في Supabase (SQL Editor)', database_error: 'خطأ في قاعدة البيانات',
+    database_unreachable: 'تعذر الاتصال بقاعدة بيانات Supabase: تحقق من SUPABASE_URL', auth_unreachable: 'تعذر الاتصال بخدمة تسجيل الدخول في Supabase', db_not_ready: 'قاعدة البيانات غير جاهزة: شغّل ملف SQL في Supabase (SQL Editor)', database_error: 'خطأ في قاعدة البيانات',
     tile_not_in_rack: 'قطعة غير موجودة في رفّك', square_taken: 'المربع مشغول', blank_letter_required: 'اختر حرفاً للقطعة الفارغة',
   };
-  const DB_MISSING = ['PGRST202', 'PGRST205', '42883', '42P01'];   // function / table not found: the SQL migration has not been run
+  const DB_MISSING = ['PGRST202', 'PGRST205', '42883', '42P01'];
+  const DB_KEY = ['401', '403', 'PGRST301', 'PGRST300', '42501'];   // service key wrong / not allowed   // function / table not found: the SQL migration has not been run
   const errText = (e) => {
     const d = (e && e.data) || {};
     if (d.message) return d.message;
     if (d.error === 'database_error' && DB_MISSING.includes(d.code)) return ERR.db_not_ready;
+    if (d.error === 'database_error' && DB_KEY.includes(d.code)) return 'مفتاح SUPABASE_SERVICE_ROLE_KEY غير صحيح أو لا يملك الصلاحية';
     const base = ERR[d.error || (e && e.message)] || 'تعذر تنفيذ الطلب';
     return d.error === 'server_not_configured' && Array.isArray(d.missing) && d.missing.length ? `${base}: ${d.missing.join('، ')}` : base;
   };
@@ -129,12 +134,12 @@
   async function loadTransport() {
     if (transport) return transport;
     let res, text;
-    try { res = await fetch('/api/config', { cache: 'no-store' }); text = await res.text(); }
-    catch (e) { throw fail('network', 'GET /api/config failed: ' + (e && e.message || e)); }
+    try { res = await fetch(EP('config'), { cache: 'no-store' }); text = await res.text(); }
+    catch (e) { throw fail('network', 'GET ' + EP('config') + ' failed: ' + (e && e.message || e)); }
     let cfg = null; try { cfg = JSON.parse(text); } catch (_) {}
     const type = (res.headers.get('content-type') || '?').split(';')[0];
-    if (!cfg) throw fail(res.status === 404 ? 'api_missing' : 'server_error', `GET /api/config -> HTTP ${res.status} (${type}), not JSON`);
-    if (!res.ok || cfg.error) throw fail(cfg.error || 'server_error', `GET /api/config -> HTTP ${res.status} ${cfg.error || ''}`, cfg);
+    if (!cfg) throw fail(res.status === 404 ? 'api_missing' : 'server_error', `GET ${EP('config')} -> HTTP ${res.status} (${type}), not JSON`);
+    if (!res.ok || cfg.error) throw fail(cfg.error || 'server_error', `GET ${EP('config')} -> HTTP ${res.status} ${cfg.error || ''}`, cfg);
     if (cfg.mode === 'dev') transport = devTransport();
     else { try { transport = await supabaseTransport(cfg); } catch (e) { throw fail('supabase_lib', 'supabase-js: ' + (e && e.message || e)); } }
     return transport;
@@ -158,7 +163,7 @@
         let data = null; try { data = await res.json(); } catch (_) {}
         if (!res.ok) {
           const d = data || { error: res.status === 404 ? 'api_missing' : 'server_error' };
-          throw Object.assign(new Error(d.error || 'http_' + res.status), { status: res.status, data: d, detail: `${method} ${path.split('?')[0]} -> HTTP ${res.status} ${d.error || ''}${d.code ? ' (' + d.code + ')' : ''}` });
+          throw Object.assign(new Error(d.error || 'http_' + res.status), { status: res.status, data: d, detail: `${method} ${opOf(path)} -> HTTP ${res.status} ${d.error || ''}${d.code ? ' (' + d.code + ')' : ''}` });
         }
         setNet(true);
         return data;
@@ -167,7 +172,7 @@
         const retryable = !e.status || e.status >= 500;
         if (!e.status) setNet(false);
         if (!retryable) throw e;
-        if (i >= retries) throw e.status ? e : fail('network', `${method} ${path.split('?')[0]} failed: ${e && e.message || e}`);
+        if (i >= retries) throw e.status ? e : fail('network', `${method} ${opOf(path)} failed: ${e && e.message || e}`);
         await sleep(Math.min(5000, 700 * 2 ** i));
       }
     }
@@ -279,7 +284,7 @@
     MP.busy = true; updateUI(false);
     const body = { code: MP.code, actionId: crypto.randomUUID(), game: MP.view.game, turnNo: MP.view.turnNo, ...action };
     try {
-      const resp = await api('POST', '/api/action', body, 4);     // same actionId on every retry => never applied twice
+      const resp = await api('POST', EP('action'), body, 4);     // same actionId on every retry => never applied twice
       apply(resp);
       return true;
     } catch (e) {
@@ -412,7 +417,7 @@
     try {
       do {
         MP.syncAgain = false;
-        apply(await api('GET', `/api/rooms?code=${encodeURIComponent(MP.code)}&since=${MP.version}`));
+        apply(await api('GET', EP('rooms', `code=${encodeURIComponent(MP.code)}&since=${MP.version}`)));
       } while (MP.syncAgain);
     } catch (e) { if (e.status === 404 || e.status === 403 || e.status === 410) sessionLost(e); }
     finally { MP.syncing = false; }
@@ -453,10 +458,10 @@
   }
 
   async function createRoom() {
-    await roomCall(() => api('POST', '/api/rooms', { op: 'create', name: nameValue() }));
+    await roomCall(() => api('POST', EP('rooms'), { op: 'create', name: nameValue() }));
   }
   async function joinRoom(code) {
-    await roomCall(() => api('POST', '/api/rooms', { op: 'join', code, name: nameValue() }));
+    await roomCall(() => api('POST', EP('rooms'), { op: 'join', code, name: nameValue() }));
   }
   async function roomCall(fn) {
     setModalBusy(true); setModalError('');
@@ -466,7 +471,7 @@
   }
   async function leaveRoom() {
     setModalBusy(true);
-    try { await api('POST', '/api/rooms', { op: 'leave', code: MP.code }, 2); } catch (_) { /* leaving locally is enough */ }
+    try { await api('POST', EP('rooms'), { op: 'leave', code: MP.code }, 2); } catch (_) { /* leaving locally is enough */ }
     clearSession();
     location.reload();
   }
@@ -478,7 +483,7 @@
     for (;;) {
       try {
         await loadTransport();
-        const resp = await api('GET', `/api/rooms?code=${encodeURIComponent(s.code)}`);
+        const resp = await api('GET', EP('rooms', `code=${encodeURIComponent(s.code)}`));
         enter(resp, { keepOpen: true });
         return;
       } catch (e) {
