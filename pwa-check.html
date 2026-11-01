@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#2b1b0f">
+<link rel="manifest" href="./manifest.webmanifest">
+<title>PWA check</title>
+<style>
+body{font:16px/1.5 system-ui,sans-serif;margin:1rem auto;padding:0 1rem;max-width:40rem}
+li{margin:.35rem 0;list-style:none;word-break:break-word}.ok{color:#0a7a2f}.bad{color:#c0201a}.warn{color:#a15c00}
+h2{margin:1.2rem 0 .2rem;font-size:1.05rem}button{font:inherit;padding:.7rem 1.2rem;border-radius:.5rem;border:0;background:#b45309;color:#fff;margin:.5rem 0}
+button[hidden]{display:none}code{background:#eee;padding:0 .25em;border-radius:3px}
+</style></head><body>
+<h1>PWA self-check</h1>
+<p>Open this page in Chrome on the device you want to install on (not in Incognito, not inside another app).</p>
+<div id="verdict"></div><button id="installBtn" hidden>Install app now</button>
+<ul id="out"></ul>
+<script>
+const out=document.getElementById('out');
+const add=(lvl,t)=>{const li=document.createElement('li');li.className=lvl;li.textContent=({ok:'✔ ',bad:'✘ ',warn:'⚠ '})[lvl]+t;out.appendChild(li)};
+const head=t=>{const h=document.createElement('h2');h.textContent=t;out.appendChild(h)};
+let deferred=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;
+  document.getElementById('verdict').innerHTML='<h2 class="ok">✔ Chrome says this app IS installable on this device.</h2>';
+  const b=document.getElementById('installBtn');b.hidden=false;
+  b.onclick=async()=>{b.hidden=true;deferred.prompt();const c=await deferred.userChoice;add(c.outcome==='accepted'?'ok':'warn','Install prompt result: '+c.outcome)}});
+window.addEventListener('appinstalled',()=>add('ok','App installed'));
+if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(e=>add('bad','SW registration failed: '+e.message));
+
+(async()=>{
+  head('This device / browser');
+  const ua=navigator.userAgent; add('warn','User agent: '+ua);
+  const desktopMode=/X11; Linux x86_64|Windows NT|Macintosh/.test(ua)&&navigator.maxTouchPoints>0;
+  add(desktopMode?'bad':'ok',desktopMode?'Chrome is in DESKTOP SITE mode. Open ⋮ and untick "Desktop site", reload, then try again.':'Mobile site mode');
+  const webview=/; wv\)|FBAN|FBAV|Instagram|Line\/|MiuiBrowser|SamsungBrowser|UCBrowser/i.test(ua);
+  add(webview?'bad':'ok',webview?'This is NOT regular Chrome (in-app or other browser). Open the link in Chrome itself.':'Looks like a regular browser');
+  add(/Chrome\//.test(ua)&&!/EdgA|OPR|SamsungBrowser/.test(ua)?'ok':'warn','Chrome engine: '+(ua.match(/Chrome\/[\d.]+/)||['not found'])[0]);
+  add(location.protocol==='https:'||location.hostname==='localhost'?'ok':'bad','Secure origin: '+location.origin);
+  add(matchMedia('(display-mode: standalone)').matches?'ok':'warn','Running as installed app: '+matchMedia('(display-mode: standalone)').matches+' (true only after install)');
+
+  head('Manifest (fetched WITHOUT cookies, like Google\'s install server does)');
+  try{
+    const mUrl=new URL(document.querySelector('link[rel=manifest]').href);
+    const r=await fetch(mUrl,{credentials:'omit',cache:'no-store'});
+    const ct=r.headers.get('content-type')||'?';
+    add(r.ok?'ok':'bad','manifest -> HTTP '+r.status+' ('+ct+')');
+    const m=JSON.parse(await r.text());
+    add(m.name?'ok':'bad','name: '+m.name);
+    add(['standalone','fullscreen','minimal-ui'].includes(m.display)?'ok':'bad','display: '+m.display);
+    add(m.start_url?'ok':'bad','start_url: '+new URL(m.start_url,mUrl).href);
+    add(m.prefer_related_applications===true?'bad':'ok','prefer_related_applications: '+m.prefer_related_applications);
+    let has192=false,has512=false;
+    for(const i of (m.icons||[])){
+      const u=new URL(i.src,mUrl);
+      try{const ir=await fetch(u,{credentials:'omit',cache:'no-store'});
+        const blob=await ir.blob();let px='?';
+        if(/png|jpe?g|webp/.test(blob.type)){const bm=await createImageBitmap(blob);px=bm.width+'x'+bm.height}
+        const okType=ir.ok&&/image\//.test(blob.type);
+        add(okType?'ok':'bad','icon '+i.src+' ['+(i.purpose||'any')+'] declared '+i.sizes+' -> HTTP '+ir.status+', '+blob.type+', real '+px);
+        if(i.type==='image/png'&&okType){if(px==='192x192')has192=true;if(px==='512x512')has512=true}
+      }catch(e){add('bad','icon '+i.src+' failed: '+e.message)}
+    }
+    add(has192&&has512?'ok':'bad','PNG icons at exactly 192x192 and 512x512 present and loading');
+  }catch(e){add('bad','Manifest problem: '+e.message+' (a login page or HTML instead of JSON means the site is protected or rewritten)')}
+
+  head('Service worker');
+  try{
+    const s=await fetch('./sw.js',{credentials:'omit',cache:'no-store'});
+    add(s.ok&&/javascript/.test(s.headers.get('content-type')||'')?'ok':'bad','sw.js -> HTTP '+s.status+' ('+s.headers.get('content-type')+')');
+    await navigator.serviceWorker.ready;
+    const reg=await navigator.serviceWorker.getRegistration('./');
+    add(reg&&reg.active?'ok':'bad','service worker active, scope '+(reg&&reg.scope));
+  }catch(e){add('bad','Service worker: '+e.message)}
+
+  setTimeout(()=>{if(!deferred)document.getElementById('verdict').innerHTML=
+    '<h2 class="warn">⚠ Chrome has not offered installation (yet). Fix every ✘ below, or see the notes under the list.</h2>'},6000);
+})();
+</script></body></html>

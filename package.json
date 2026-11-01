@@ -1,0 +1,16 @@
+{
+  "name": "arabic-scrabble",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Arabic Scrabble PWA with two-player online rooms (Vercel + Supabase)",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "dev": "node dev/dev-server.mjs",
+    "test:e2e": "node tests/e2e.mjs && node tests/e2e-local.mjs && node tests/e2e-errors.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4"
+  }
+}

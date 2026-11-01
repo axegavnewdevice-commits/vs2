@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <filter id="camo" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency=".011 .014" numOctaves="3" seed="9"/>
+      <feColorMatrix type="matrix" values="1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0 0 0 0 1"/>
+      <feComponentTransfer><feFuncR type="discrete" tableValues="0.42 0.302 0.557 0.247 0.459"/><feFuncG type="discrete" tableValues="0.435 0.259 0.541 0.29 0.478"/><feFuncB type="discrete" tableValues="0.263 0.169 0.357 0.165 0.29"/></feComponentTransfer>
+    </filter>
+    <radialGradient id="vig" cx="50%" cy="46%" r="72%"><stop offset=".25" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".55"/></radialGradient>
+    <linearGradient id="face" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f3ecc8"/><stop offset="1" stop-color="#d9cd98"/></linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ecd492"/><stop offset="1" stop-color="#7a5c20"/></linearGradient>
+    <linearGradient id="ink" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a6822"/><stop offset="1" stop-color="#1f3010"/></linearGradient>
+    <filter id="blur" x="-20%" y="-20%" width="140%" height="150%"><feGaussianBlur stdDeviation="13"/></filter>
+    <clipPath id="round"><rect width="512" height="512" rx="108"/></clipPath>
+  </defs>
+  <g clip-path="url(#round)"><rect width="512" height="512" filter="url(#camo)"/><rect width="512" height="512" fill="url(#vig)"/></g>
+  <rect x="21.5" y="21.5" width="469" height="469" rx="66.5" fill="none" stroke="#c9a45a" stroke-width="5.5"/>
+  <rect x="38" y="38" width="436" height="436" rx="51" fill="none" stroke="#ecd492" stroke-opacity=".6" stroke-width="1.8"/>
+  <g fill="#ecd492" stroke="#7a5c20" stroke-width="1"><rect x="247.6" y="13.1" width="16.8" height="16.8"/><polygon points="256.0,9.6 267.9,21.5 256.0,33.4 244.1,21.5"/><rect x="247.6" y="482.1" width="16.8" height="16.8"/><polygon points="256.0,478.6 267.9,490.5 256.0,502.4 244.1,490.5"/><rect x="13.1" y="247.6" width="16.8" height="16.8"/><polygon points="21.5,244.1 33.4,256.0 21.5,267.9 9.6,256.0"/><rect x="482.1" y="247.6" width="16.8" height="16.8"/><polygon points="490.5,244.1 502.4,256.0 490.5,267.9 478.6,256.0"/></g>
+  <rect x="102.4" y="118.8" width="307.2" height="307.2" rx="52.2" fill="#000" fill-opacity=".75" filter="url(#blur)"/>
+  <rect x="102.4" y="100.4" width="307.2" height="322.6" rx="52.2" fill="url(#edge)"/>
+  <rect x="102.4" y="97.3" width="307.2" height="307.2" rx="52.2" fill="url(#face)" stroke="#fffdeb" stroke-opacity=".9" stroke-width="1.6"/>
+  <rect x="120.2" y="115.1" width="271.6" height="271.6" rx="37.5" fill="none" stroke="#c9a45a" stroke-width="2.4"/>
+  <rect x="128.5" y="123.4" width="255.0" height="255.0" rx="32.3" fill="none" stroke="#c9a45a" stroke-opacity=".45" stroke-width="1"/>
+  <g transform="translate(140.85 282.86) scale(0.25047)"><path d="M635 -463 716 -418 666 -336 585 -381ZM556 -118Q601 -180 669.0 -220.0Q737 -260 780 -260Q818 -260 853.5 -218.0Q889 -176 889 -142Q889 -97 850.5 -48.5Q812 0 783 0Q705 0 635.5 -17.5Q566 -35 536 -56Q536 78 522 154Q427 242 260 242Q160 242 107.5 198.5Q55 155 55 50Q56 20 61.5 -8.0Q67 -36 72.5 -51.0Q78 -66 90.0 -94.5Q102 -123 107 -136L154 -120Q142 -87 137.5 -73.0Q133 -59 129.0 -37.0Q125 -15 125 9Q125 47 128.5 67.5Q132 88 145.0 106.0Q158 124 186.0 131.0Q214 138 261 138Q322 138 363.0 128.5Q404 119 417.5 110.5Q431 102 473 74Q473 36 452.0 -36.0Q431 -108 407 -140L492 -244Q516 -203 530 -139ZM686 -102Q805 -102 805 -133Q804 -138 800.5 -146.0Q797 -154 782.5 -167.0Q768 -180 748 -180Q704 -180 615 -104Q677 -102 686 -102Z" fill="#fff" fill-opacity=".8"/></g>
+  <g transform="translate(137.78 278.56) scale(0.25047)"><path d="M635 -463 716 -418 666 -336 585 -381ZM556 -118Q601 -180 669.0 -220.0Q737 -260 780 -260Q818 -260 853.5 -218.0Q889 -176 889 -142Q889 -97 850.5 -48.5Q812 0 783 0Q705 0 635.5 -17.5Q566 -35 536 -56Q536 78 522 154Q427 242 260 242Q160 242 107.5 198.5Q55 155 55 50Q56 20 61.5 -8.0Q67 -36 72.5 -51.0Q78 -66 90.0 -94.5Q102 -123 107 -136L154 -120Q142 -87 137.5 -73.0Q133 -59 129.0 -37.0Q125 -15 125 9Q125 47 128.5 67.5Q132 88 145.0 106.0Q158 124 186.0 131.0Q214 138 261 138Q322 138 363.0 128.5Q404 119 417.5 110.5Q431 102 473 74Q473 36 452.0 -36.0Q431 -108 407 -140L492 -244Q516 -203 530 -139ZM686 -102Q805 -102 805 -133Q804 -138 800.5 -146.0Q797 -154 782.5 -167.0Q768 -180 748 -180Q704 -180 615 -104Q677 -102 686 -102Z" fill="url(#ink)"/></g>
+</svg>
